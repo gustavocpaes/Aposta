@@ -48,7 +48,9 @@
         .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
         .game-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 15px; position: relative; }
         .game-status { font-size: 0.8rem; color: var(--green-bet); font-weight: bold; margin-bottom: 10px; text-align: center; }
-        .teams { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; }
+        .teams { display: flex; justify-content: space-between; align-items: center; font-size: 1rem; font-weight: bold; margin-top: 10px;}
+        .team-info { display: flex; align-items: center; gap: 8px; flex: 1; }
+        .team-info.away { justify-content: flex-end; }
         .fav-star { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 1.2rem; color: var(--border); transition: 0.2s;}
         .fav-star.active { color: #f59e0b; }
 
@@ -70,6 +72,7 @@
         .prob-draw { background: var(--draw); height: 100%; }
         .prob-away { background: var(--red-bet); height: 100%; }
 
+        /* TABELAS */
         .table-container { overflow-x: auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th, td { padding: 12px; border-bottom: 1px solid var(--border); white-space: nowrap; font-size: 0.9rem; }
@@ -78,6 +81,10 @@
         .loading { text-align: center; color: var(--green-bet); font-size: 1.2rem; margin-top: 50px; }
         .debug-error { background-color: #ef444422; border: 1px solid var(--red-bet); color: var(--text-main); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         .pre-match-badge { background-color: #3b82f6; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-left: 10px; }
+        
+        /* CAIXA DO ROBÔ TIPSTER */
+        .robot-box { background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--green-bet); padding: 15px; border-radius: 0 8px 8px 0; text-align: left; margin-bottom: 20px;}
+        .robot-box p { margin-bottom: 5px; }
 
         @media (max-width: 768px) {
             header.top-bar { flex-direction: column; gap: 10px; padding: 15px; }
@@ -87,6 +94,7 @@
             #league-list { flex-direction: row; overflow-x: auto; padding-bottom: 5px; }
             main.content { padding: 15px; }
             .market-blocks { grid-template-columns: 1fr; }
+            .team-info span { font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -160,7 +168,7 @@
 
     function exportarWhatsApp() {
         const titulo = document.getElementById('match-title').innerText;
-        navigator.clipboard.writeText(`🔥 *RADAR TIPSTER* 🔥\n⚽ *${titulo}*\n\n_Estatísticas extraídas ao vivo_ 📊`).then(() => {
+        navigator.clipboard.writeText(`🔥 *RADAR TIPSTER* 🔥\n⚽ *${titulo}*\n\n_Estatísticas e Tips extraídas pelo algoritmo_ 📊`).then(() => {
             alert("✅ Análise copiada! Pronto para colar no WhatsApp/Telegram.");
         });
     }
@@ -239,17 +247,27 @@
             const statusInfo = isLive ? `<span class="stat-green">AO VIVO - ${jogo.fixture.status.elapsed ?? '?'}分</span>` : (jogo.fixture.status.short === "NS" ? "A Iniciar" : "Encerrado");
             const starClass = jogosFavoritos.includes(jogo.fixture.id) ? "fav-star active" : "fav-star";
 
-            // Passando o status para a função abrirMercados
+            // AGORA COM OS ESCUDOS DAS EQUIPAS
             grid.innerHTML += `
                 <div class="game-card">
                     <span class="${starClass}" onclick="toggleFav(${jogo.fixture.id})">★</span>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;"><img src="${jogo.league.logo}" width="15" style="border-radius: 50%;"> ${jogo.league.name}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;"><img src="${jogo.league.logo}" width="15" style="border-radius: 50%; vertical-align: middle;"> ${jogo.league.name}</div>
                     <div class="game-status">${statusInfo}</div>
+                    
                     <div class="teams">
-                        <span style="font-size:0.9rem">${jogo.teams.home.name}</span>
-                        <span class="stat-green">${jogo.goals.home ?? 0} x ${jogo.goals.away ?? 0}</span>
-                        <span style="font-size:0.9rem">${jogo.teams.away.name}</span>
+                        <div class="team-info">
+                            <img src="${jogo.teams.home.logo}" width="24" style="border-radius: 50%;">
+                            <span>${jogo.teams.home.name}</span>
+                        </div>
+                        
+                        <span class="stat-green" style="padding: 0 10px;">${jogo.goals.home ?? 0} x ${jogo.goals.away ?? 0}</span>
+                        
+                        <div class="team-info away">
+                            <span>${jogo.teams.away.name}</span>
+                            <img src="${jogo.teams.away.logo}" width="24" style="border-radius: 50%;">
+                        </div>
                     </div>
+
                     <button class="btn-analisar" onclick="abrirMercados(${jogo.fixture.id}, '${jogo.teams.home.name}', '${jogo.teams.away.name}', '${jogo.fixture.status.short}')">Analisar Jogo</button>
                 </div>
             `;
@@ -266,7 +284,6 @@
         
         document.getElementById('dados-mercado').style.display = 'none';
         
-        // ROTEADOR INTELIGENTE: Se o jogo não começou (NS), busca previsões. Se não, busca os chutes ao vivo.
         if(statusShort === 'NS') {
             buscarPreJogo(fixtureId, homeName, awayName);
         } else {
@@ -281,7 +298,7 @@
     }
 
     // ==========================================
-    // MODO 1: ANÁLISE PRÉ-JOGO (Últimos jogos e Probabilidades)
+    // MODO 1: ANÁLISE PRÉ-JOGO (ROBÔ TIPSTER ATIVADO)
     // ==========================================
     async function buscarPreJogo(fixtureId, homeName, awayName) {
         const loading = document.getElementById('loading-mercados');
@@ -295,7 +312,7 @@
             loading.style.display = "none";
 
             if(!data.response || data.response.length === 0) {
-                container.innerHTML = `<div class="debug-error">Sem histórico disponível para este jogo ainda.</div>`;
+                container.innerHTML = `<div class="debug-error">Sem histórico ou previsões disponíveis para este jogo ainda.</div>`;
                 container.style.display = "block";
                 return;
             }
@@ -304,40 +321,52 @@
             const homeForm = pred.teams.home.league.form || "?????";
             const awayForm = pred.teams.away.league.form || "?????";
             
-            // Gerador de Badges de W/D/L
-            const formatForm = (formStr) => {
-                return formStr.split('').map(char => `<span class="form-badge form-${char}">${char}</span>`).join('');
-            };
+            const formatForm = (formStr) => { return formStr.split('').map(char => `<span class="form-badge form-${char}">${char}</span>`).join(''); };
 
             const percHome = pred.predictions.percent.home;
             const percDraw = pred.predictions.percent.draw;
             const percAway = pred.predictions.percent.away;
+            
+            // DADOS DO ROBÔ TIPSTER
+            const tipAdvice = pred.predictions.advice || "Sem indicação clara.";
+            const tipGoals = pred.predictions.under_over || "N/A";
+            const tipBtts = pred.predictions.btts ? "SIM" : "NÃO";
 
-            // Constroi H2H (Últimos confrontos)
             let h2hHtml = "";
             if(pred.h2h && pred.h2h.length > 0) {
                 h2hHtml = pred.h2h.slice(0, 5).map(jogo => {
-                    const hGoals = jogo.goals.home ?? 0;
-                    const aGoals = jogo.goals.away ?? 0;
-                    return `<tr><td>${jogo.teams.home.name}</td><td style="text-align:center; font-weight:bold;">${hGoals} - ${aGoals}</td><td>${jogo.teams.away.name}</td></tr>`;
+                    return `<tr>
+                                <td><img src="${jogo.teams.home.logo}" width="16" style="vertical-align:middle; border-radius:50%;"> ${jogo.teams.home.name}</td>
+                                <td style="text-align:center; font-weight:bold;">${jogo.goals.home ?? 0} - ${jogo.goals.away ?? 0}</td>
+                                <td><img src="${jogo.teams.away.logo}" width="16" style="vertical-align:middle; border-radius:50%;"> ${jogo.teams.away.name}</td>
+                            </tr>`;
                 }).join('');
-            } else {
-                h2hHtml = `<tr><td colspan="3" style="text-align:center;">Sem confrontos diretos recentes.</td></tr>`;
-            }
+            } else { h2hHtml = `<tr><td colspan="3" style="text-align:center;">Sem confrontos diretos recentes.</td></tr>`; }
 
             container.innerHTML = `
+                <h2 style="font-size: 1.2rem; margin-bottom: 10px; color: var(--green-bet);">🤖 Inteligência Artificial (Robô Tipster)</h2>
+                <div class="robot-box">
+                    <p style="font-size: 1.1rem;"><strong>🔥 Sugestão de Entrada:</strong> <span style="text-transform: uppercase;">${tipAdvice}</span></p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;"><strong>⚽ Expectativa de Golos (Over/Under):</strong> ${tipGoals}</p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;"><strong>🥅 Ambas as Equipas Marcam (BTTS):</strong> ${tipBtts}</p>
+                </div>
+
                 <div class="market-blocks">
                     <div class="market-card">
-                        <h3>Últimos 5 Jogos: ${homeName}</h3>
+                        <h3 style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <img src="${pred.teams.home.logo}" width="20" style="border-radius:50%;"> Últimos 5: ${homeName}
+                        </h3>
                         <div>${formatForm(homeForm)}</div>
                     </div>
                     <div class="market-card">
-                        <h3>Últimos 5 Jogos: ${awayName}</h3>
+                        <h3 style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <img src="${pred.teams.away.logo}" width="20" style="border-radius:50%;"> Últimos 5: ${awayName}
+                        </h3>
                         <div>${formatForm(awayForm)}</div>
                     </div>
                 </div>
 
-                <h2 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-muted);">Probabilidades do Algoritmo</h2>
+                <h2 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-muted);">Probabilidades Matemáticas</h2>
                 <div class="market-card" style="margin-bottom: 20px;">
                     <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold;">
                         <span style="color:var(--win)">Casa (${percHome})</span>
@@ -354,20 +383,18 @@
                 <h2 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-muted);">Confronto Direto (Últimos Jogos)</h2>
                 <div class="table-container">
                     <table>
-                        <thead><tr><th>Casa</th><th style="text-align:center;">Placar</th><th>Visitante</th></tr></thead>
+                        <thead><tr><th>Equipa da Casa</th><th style="text-align:center;">Resultado</th><th>Equipa Visitante</th></tr></thead>
                         <tbody>${h2hHtml}</tbody>
                     </table>
                 </div>
             `;
             container.style.display = "block";
 
-        } catch (e) {
-            loading.innerHTML = `<span class="stat-red">Erro ao buscar dados pré-jogo.</span>`;
-        }
+        } catch (e) { loading.innerHTML = `<span class="stat-red">Erro ao buscar dados pré-jogo.</span>`; }
     }
 
     // ==========================================
-    // MODO 2: ESTATÍSTICAS AO VIVO (Chutes, Escanteios, etc)
+    // MODO 2: ESTATÍSTICAS AO VIVO COM LOGOS
     // ==========================================
     async function buscarAoVivo(fixtureId) {
         const loading = document.getElementById('loading-mercados');
@@ -378,7 +405,7 @@
             <h2 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-muted);">Mercado de Jogadores (Player Props)</h2>
             <div class="table-container">
                 <table id="players-table">
-                    <thead><tr><th>Time</th><th>Jogador</th><th>Pos</th><th>Chutes Alvo</th><th>Faltas</th><th>Cartões</th><th>Defesas</th></tr></thead>
+                    <thead><tr><th style="text-align:center;">Clube</th><th>Jogador</th><th>Pos</th><th>Chutes Alvo</th><th>Faltas</th><th>Cartões</th><th>Defesas</th></tr></thead>
                     <tbody id="players-list"></tbody>
                 </table>
             </div>`;
@@ -402,7 +429,10 @@
                     const getStat = (type) => { const s = time.statistics.find(x => x.type === type); return s ? (s.value !== null ? s.value : 0) : 0; };
                     teamStatsContainer.innerHTML += `
                         <div class="market-card">
-                            <h3>${time.team.name}</h3>
+                            <h3 style="display:flex; align-items:center; justify-content:center; gap:10px;">
+                                <img src="${time.team.logo}" width="28" style="border-radius: 5px;">
+                                ${time.team.name}
+                            </h3>
                             <p>Escanteios: <span class="stat-green" style="font-weight:bold">${getStat("Corner Kicks")}</span></p>
                             <p>Cartões: <span class="stat-red" style="font-weight:bold">${getStat("Yellow Cards")}🟨 ${getStat("Red Cards")}🟥</span></p>
                         </div>`;
@@ -418,7 +448,7 @@
                             const cards = (stats.cards.yellow > 0 ? "🟨" : "") + (stats.cards.red > 0 ? "🟥" : "");
                             playersTable.innerHTML += `
                                 <tr>
-                                    <td style="color:var(--text-muted); font-size:0.8rem;">${time.team.name}</td>
+                                    <td style="text-align:center;"><img src="${time.team.logo}" width="22" style="border-radius: 50%;" title="${time.team.name}"></td>
                                     <td><strong>${p.player.name}</strong></td>
                                     <td style="color:var(--text-muted);">${stats.games.position}</td>
                                     <td class="${shotsOn > 0 ? 'highlight-chute' : 'stat-red'}">${shotsOn}</td>
