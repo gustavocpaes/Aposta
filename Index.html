@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tipster Radar - Dashboard Pro</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a0c;
+            --bg-card: #18181b;
+            --bg-hover: #27272a;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --green-bet: #10b981; 
+            --red-bet: #ef4444;   
+            --border: #3f3f46;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); }
+        
+        /* HEADER PRINCIPAL */
+        header.top-bar { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px 30px; border-bottom: 1px solid var(--border); background: var(--bg-card);
+        }
+        h1 { font-size: 1.5rem; color: var(--green-bet); }
+        .date-picker { background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; }
+
+        /* LAYOUT PRINCIPAL */
+        .app-layout { display: flex; min-height: 90vh; flex-direction: row; }
+        
+        /* BARRA LATERAL (LIGAS) */
+        aside.sidebar { 
+            width: 280px; background: var(--bg-card); border-right: 1px solid var(--border); 
+            padding: 20px; overflow-y: auto; max-height: 90vh;
+        }
+        aside h2 { font-size: 1rem; color: var(--text-muted); margin-bottom: 15px; text-transform: uppercase; }
+        #league-list { display: flex; flex-direction: column; gap: 5px; }
+        .league-item { 
+            display: flex; align-items: center; gap: 10px; padding: 10px; 
+            border-radius: 6px; cursor: pointer; color: var(--text-muted); transition: 0.2s; white-space: nowrap;
+        }
+        .league-item:hover, .league-item.active { background: var(--bg-hover); color: var(--text-main); }
+        .league-item img { width: 20px; height: 20px; border-radius: 50%; }
+
+        /* CONTEÚDO CENTRAL */
+        main.content { flex: 1; padding: 30px; overflow-y: auto; }
+        
+        /* ABAS (TODOS / AO VIVO / FAVORITOS) */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { 
+            background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); 
+            padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .tab-btn.active { background: var(--green-bet); color: #000; border-color: var(--green-bet); }
+
+        /* BOTOES GERAIS */
+        .btn-analisar { background-color: var(--green-bet); color: #000; padding: 8px 16px; width: 100%; margin-top: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;}
+        .btn-analisar:hover { opacity: 0.8; }
+        .btn-voltar { background-color: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; margin-bottom: 20px; cursor: pointer; border-radius: 6px;}
+        .btn-voltar:hover { background-color: var(--bg-hover); color: var(--text-main); }
+        
+        .btn-exportar { background-color: #25D366; color: #000; padding: 8px 16px; margin-left: 10px; margin-bottom: 20px; cursor: pointer; border-radius: 6px; border: none; font-weight: bold;}
+        .btn-exportar:hover { opacity: 0.8; }
+
+        /* GRID RADAR */
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+        .game-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 15px; position: relative; }
+        .game-status { font-size: 0.8rem; color: var(--green-bet); font-weight: bold; margin-bottom: 10px; text-align: center; }
+        .teams { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; }
+        
+        /* FAVORITO ESTRELA */
+        .fav-star { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 1.2rem; color: var(--border); transition: 0.2s;}
+        .fav-star.active { color: #f59e0b; }
+
+        /* TELAS */
+        #tela-mercados { display: none; }
+
+        /* MERCADOS (TABELAS) */
+        .market-blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .market-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 15px; text-align: center; }
+        .market-card h3 { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px; }
+        .market-data { font-size: 2rem; font-weight: bold; }
+        .stat-green { color: var(--green-bet); }
+        .stat-red { color: var(--red-bet); }
+        
+        .table-container { overflow-x: auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        th { background-color: #111113; color: var(--text-muted); font-size: 0.85rem; }
+        .highlight-chute { font-weight: bold; color: var(--green-bet); }
+        .highlight-defesa { font-weight: bold; color: #3b82f6; }
+
+        .loading { text-align: center; color: var(--green-bet); font-size: 1.2rem; margin-top: 50px; }
+        .debug-error { background-color: #ef444422; border: 1px solid var(--red-bet); color: var(--text-main); padding: 15px; border-radius: 8px; font-family: monospace; }
+
+        @media (max-width: 768px) {
+            header.top-bar { flex-direction: column; gap: 10px; padding: 15px; }
+            .app-layout { flex-direction: column; }
+            aside.sidebar { width: 100%; height: auto; max-height: none; border-right: none; border-bottom: 1px solid var(--border); padding: 10px; }
+            aside h2 { display: none; } 
+            #league-list { flex-direction: row; overflow-x: auto; padding-bottom: 5px; }
+            main.content { padding: 15px; }
+            .market-blocks { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="top-bar">
+    <h1>🎯 Tipster Radar</h1>
+    <input type="date" id="dateFilter" class="date-picker">
+</header>
+
+<div class="app-layout">
+    <aside class="sidebar" id="tela-sidebar">
+        <h2>Ligas do Dia</h2>
+        <div id="league-list"></div>
+    </aside>
+
+    <main class="content">
+        <div id="tela-radar">
+            <div class="tabs">
+                <button class="tab-btn active" id="btn-tab-all" onclick="setFilter('all')">Todos os Jogos</button>
+                <button class="tab-btn" id="btn-tab-live" onclick="setFilter('live')">🔴 Ao Vivo</button>
+                <button class="tab-btn" id="btn-tab-fav" onclick="setFilter('fav')">⭐ Favoritos</button>
+            </div>
+            <div id="loading-radar" class="loading" style="display: none;">Buscando jogos...</div>
+            <div class="games-grid" id="games-list"></div>
+        </div>
+
+        <div id="tela-mercados">
+            <div style="display: flex; flex-wrap: wrap;">
+                <button class="btn-voltar" onclick="voltarParaRadar()">⬅ Voltar ao Radar</button>
+                <button class="btn-exportar" onclick="exportarWhatsApp()">📲 Copiar Análise</button>
+            </div>
+            
+            <h1 id="match-title" style="margin-bottom: 20px;">Carregando...</h1>
+            <div id="loading-mercados" class="loading" style="display: none;">Cruzando estatísticas...</div>
+            
+            <div id="dados-mercado" style="display: none;">
+                <div class="market-blocks" id="team-stats-container"></div>
+                <h2 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--text-muted);">Mercado de Jogadores (Player Props)</h2>
+                <div class="table-container">
+                    <table id="players-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th><th>Jogador</th><th>Pos</th><th>Chutes ao Gol</th><th>Total</th><th>Faltas</th><th>Cartões</th><th>Defesas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="players-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // =====================================
+    // 🛠️ MOTOR DE DADOS DA API
+    // =====================================
+    const API_KEY = "b6e7deed3ecf1d330f35324625c88b46"; 
+    const BASE_URL = "https://v3.football.api-sports.io";
+    
+    // Agora mandando o "envelope" que a API-Sports oficial espera ler
+    const requestOptions = { 
+        method: 'GET', 
+        headers: { 
+            "x-apisports-key": API_KEY,      // Formato oficial do seu dashboard
+            "x-rapidapi-key": API_KEY        // Fallback por segurança
+        }, 
+        redirect: 'follow' 
+    };
+
+    const TOP_LEAGUES = [15, 1, 2, 3, 39, 140, 135, 78, 61, 71, 13, 9, 4];
+    let todosOsJogos = [];
+    let filtroAtual = 'all'; 
+    let ligaSelecionada = null; 
+    let jogosFavoritos = JSON.parse(localStorage.getItem('favGames')) || [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // Gera a data atual blindada contra bugs de mobile
+        const dateObj = new Date();
+        const yy = dateObj.getFullYear();
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const dataHoje = `${yy}-${mm}-${dd}`;
+        
+        const dateInput = document.getElementById('dateFilter');
+        dateInput.value = dataHoje; // Força o preenchimento do campo
+        
+        buscarJogos(dataHoje);
+        dateInput.addEventListener('change', (e) => { 
+            if(e.target.value) buscarJogos(e.target.value); 
+        });
+    });
+
+    // SISTEMA DE FAVORITOS
+    function toggleFav(fixtureId) {
+        if(jogosFavoritos.includes(fixtureId)) {
+            jogosFavoritos = jogosFavoritos.filter(id => id !== fixtureId);
+        } else {
+            jogosFavoritos.push(fixtureId);
+        }
+        localStorage.setItem('favGames', JSON.stringify(jogosFavoritos));
+        renderizarJogos();
+    }
+
+    // EXPORTAR WHATSAPP
+    function exportarWhatsApp() {
+        const titulo = document.getElementById('match-title').innerText;
+        let texto = `🔥 *RADAR TIPSTER: ALERTA DE ENTRADA* 🔥\n⚽ *${titulo}*\n\n`;
+        texto += `_Estatísticas extraídas ao vivo_ 📊\n\n`;
+        texto += `*Acesse o painel para ver mais:*\n(Seu Link da Vercel Aqui)`;
+        
+        navigator.clipboard.writeText(texto).then(() => {
+            alert("✅ Análise copiada! Pronto para colar no WhatsApp/Telegram.");
+        });
+    }
+
+    async function buscarJogos(dataString) {
+        const loadingRadar = document.getElementById('loading-radar');
+        const gamesList = document.getElementById('games-list');
+        const leagueList = document.getElementById('league-list');
+        
+        loadingRadar.style.display = "block";
+        gamesList.innerHTML = "";
+        leagueList.innerHTML = "";
+        todosOsJogos = [];
+
+        try {
+            // Removi o parâmetro timezone para evitar bugs na rotação do servidor deles
+            const response = await fetch(`${BASE_URL}/fixtures?date=${dataString}`, requestOptions);
+            const data = await response.json();
+            
+            loadingRadar.style.display = "none";
+
+            // 🔥 MODO DEBUG: Se a API mandar erro, escreve na tela
+            if(data.errors && Object.keys(data.errors).length > 0) {
+                const erroMsg = JSON.stringify(data.errors, null, 2);
+                gamesList.innerHTML = `
+                    <div class="debug-error">
+                        <h3>⚠️ API Retornou um Erro:</h3>
+                        <pre>${erroMsg}</pre>
+                    </div>`;
+                return;
+            }
+
+            // Verifica se tem jogos no dia
+            if (!data.response || data.response.length === 0) {
+                gamesList.innerHTML = `<h3 style="color: var(--text-muted);">Nenhum jogo encontrado para esta data.</h3>`;
+                return;
+            }
+
+            todosOsJogos = data.response;
+            montarSidebarLigas();
+            renderizarJogos();
+            
+        } catch (error) {
+            console.error(error);
+            loadingRadar.style.display = "none";
+            gamesList.innerHTML = `<h3 style="color: var(--red-bet);">❌ Erro crítico no JavaScript: falha na requisição.</h3>`;
+        }
+    }
+
+    function montarSidebarLigas() {
+        const leagueList = document.getElementById('league-list');
+        leagueList.innerHTML = `<div class="league-item active" onclick="filtrarPorLiga(null, this)">Todas as Ligas</div>`;
+        
+        const ligasMap = new Map();
+        todosOsJogos.forEach(jogo => {
+            if(!ligasMap.has(jogo.league.id)) { ligasMap.set(jogo.league.id, jogo.league); }
+        });
+
+        const ligasArray = Array.from(ligasMap.values());
+        ligasArray.sort((a, b) => {
+            const aIsTop = TOP_LEAGUES.includes(a.id);
+            const bIsTop = TOP_LEAGUES.includes(b.id);
+            if (aIsTop && !bIsTop) return -1;
+            if (!aIsTop && bIsTop) return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        ligasArray.forEach(liga => {
+            leagueList.innerHTML += `<div class="league-item" onclick="filtrarPorLiga(${liga.id}, this)"><img src="${liga.logo}" alt="logo"> ${liga.name}</div>`;
+        });
+    }
+
+    function filtrarPorLiga(idLiga, elemento = null) {
+        ligaSelecionada = idLiga;
+        document.querySelectorAll('.league-item').forEach(el => el.classList.remove('active'));
+        if(elemento) { elemento.classList.add('active'); } 
+        else { document.querySelector('.league-item').classList.add('active'); }
+        
+        if(filtroAtual !== 'all') setFilter('all', false);
+        else renderizarJogos();
+    }
+
+    function setFilter(tipo, resetLiga = true) {
+        filtroAtual = tipo;
+        document.getElementById('btn-tab-all').classList.toggle('active', tipo === 'all');
+        document.getElementById('btn-tab-live').classList.toggle('active', tipo === 'live');
+        document.getElementById('btn-tab-fav').classList.toggle('active', tipo === 'fav');
+        
+        if((tipo === 'live' || tipo === 'fav') && resetLiga) {
+            ligaSelecionada = null;
+            document.querySelectorAll('.league-item').forEach(el => el.classList.remove('active'));
+        }
+        renderizarJogos();
+    }
+
+    function renderizarJogos() {
+        const grid = document.getElementById('games-list');
+        grid.innerHTML = "";
+
+        let jogosFiltrados = todosOsJogos.filter(jogo => {
+            let status = jogo.fixture.status.short;
+            let isLive = ["1H", "2H", "HT", "LIVE", "ET", "P"].includes(status);
+            
+            if(filtroAtual === 'fav') return jogosFavoritos.includes(jogo.fixture.id);
+            if(filtroAtual === 'live') return isLive;
+            return ligaSelecionada === null || jogo.league.id === ligaSelecionada;
+        });
+
+        if(jogosFiltrados.length === 0) {
+            grid.innerHTML = `<p style="color: var(--text-muted);">Nenhum jogo encontrado com esses filtros.</p>`;
+            return;
+        }
+
+        jogosFiltrados.forEach(jogo => {
+            const status = jogo.fixture.status.short;
+            const isLive = ["1H", "2H", "HT", "LIVE", "ET", "P"].includes(status);
+            const statusInfo = isLive ? `<span class="stat-green">AO VIVO - ${jogo.fixture.status.elapsed ?? '?'}分</span>` : (status === "NS" ? "A Iniciar" : "Encerrado");
+            
+            const isFav = jogosFavoritos.includes(jogo.fixture.id);
+            const starClass = isFav ? "fav-star active" : "fav-star";
+
+            grid.innerHTML += `
+                <div class="game-card">
+                    <span class="${starClass}" onclick="toggleFav(${jogo.fixture.id})">★</span>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
+                        <img src="${jogo.league.logo}" width="15" style="border-radius: 50%;"> ${jogo.league.name}
+                    </div>
+                    <div class="game-status">${statusInfo}</div>
+                    <div class="teams">
+                        <span style="font-size:0.9rem">${jogo.teams.home.name}</span>
+                        <span class="stat-green">${jogo.goals.home ?? 0} x ${jogo.goals.away ?? 0}</span>
+                        <span style="font-size:0.9rem">${jogo.teams.away.name}</span>
+                    </div>
+                    <button class="btn-analisar" onclick="abrirMercados(${jogo.fixture.id}, '${jogo.teams.home.name}', '${jogo.teams.away.name}')">Analisar Mercados</button>
+                </div>
+            `;
+        });
+    }
+
+    function abrirMercados(fixtureId, homeName, awayName) {
+        document.getElementById('tela-radar').style.display = 'none';
+        document.getElementById('tela-sidebar').style.display = 'none'; 
+        document.getElementById('tela-mercados').style.display = 'block';
+        document.getElementById('match-title').innerText = `${homeName} x ${awayName}`;
+        document.getElementById('dados-mercado').style.display = 'none';
+        buscarEstatisticas(fixtureId);
+    }
+
+    function voltarParaRadar() {
+        document.getElementById('tela-radar').style.display = 'block';
+        
+        // No mobile a barra lateral nao volta na mesma grid para nao quebrar, por isso testamos a largura
+        if(window.innerWidth > 768) {
+            document.getElementById('tela-sidebar').style.display = 'block';
+        }
+        
+        document.getElementById('tela-mercados').style.display = 'none';
+    }
+
+    async function buscarEstatisticas(fixtureId) {
+        const loading = document.getElementById('loading-mercados');
+        const container = document.getElementById('dados-mercado');
+        const teamStatsContainer = document.getElementById('team-stats-container');
+        const playersTable = document.getElementById('players-list');
+        
+        loading.style.display = "block";
+        teamStatsContainer.innerHTML = "";
+        playersTable.innerHTML = "";
+
+        try {
+            const [respPlayers, respTeam] = await Promise.all([
+                fetch(`${BASE_URL}/fixtures/players?fixture=${fixtureId}`, requestOptions),
+                fetch(`${BASE_URL}/fixtures/statistics?fixture=${fixtureId}`, requestOptions)
+            ]);
+            
+            const dataPlayers = await respPlayers.json();
+            const dataTeam = await respTeam.json();
+            
+            loading.style.display = "none";
+            
+            if(dataPlayers.errors && Object.keys(dataPlayers.errors).length > 0) {
+                container.style.display = "block";
+                teamStatsContainer.innerHTML = `<div class="debug-error">Erro na API de Estatísticas: ${JSON.stringify(dataPlayers.errors)}</div>`;
+                return;
+            }
+
+            container.style.display = "block";
+
+            // BLOCO 1
+            if(dataTeam.response && dataTeam.response.length === 2) {
+                dataTeam.response.forEach(time => {
+                    const getStat = (type) => {
+                        const s = time.statistics.find(x => x.type === type);
+                        return s ? (s.value !== null ? s.value : 0) : 0;
+                    };
+                    const corners = getStat("Corner Kicks");
+                    const yellowCards = getStat("Yellow Cards");
+                    const redCards = getStat("Red Cards");
+
+                    teamStatsContainer.innerHTML += `
+                        <div class="market-card">
+                            <h3>${time.team.name}</h3>
+                            <p>Escanteios: <span class="market-data stat-green">${corners}</span></p>
+                            <p>Cartões: <span class="market-data stat-red">${yellowCards}🟨 ${redCards}🟥</span></p>
+                        </div>
+                    `;
+                });
+            } else {
+                teamStatsContainer.innerHTML = "<p>Sem dados coletivos no momento.</p>";
+            }
+
+            // BLOCO 2
+            if(dataPlayers.response && dataPlayers.response.length > 0) {
+                dataPlayers.response.forEach(time => {
+                    const logoTime = time.team.name;
+                    time.players.forEach(p => {
+                        const stats = p.statistics[0]; 
+                        const shotsOn = stats.shots.on ?? 0;
+                        const shotsTot = stats.shots.total ?? 0;
+                        const classShotsOn = shotsOn > 0 ? "highlight-chute" : "stat-red";
+                        const fouls = stats.fouls.committed ?? 0;
+                        const cards = (stats.cards.yellow > 0 ? "🟨" : "") + (stats.cards.red > 0 ? "🟥" : "");
+                        const saves = stats.goals.saves ?? 0;
+                        const classSaves = stats.games.position === "G" && saves > 0 ? "highlight-defesa" : "";
+
+                        if(stats.games.minutes > 0) {
+                            playersTable.innerHTML += `
+                                <tr>
+                                    <td style="color: var(--text-muted); font-size: 0.8rem;">${logoTime}</td>
+                                    <td><strong>${p.player.name}</strong></td>
+                                    <td style="color: var(--text-muted);">${stats.games.position}</td>
+                                    <td class="${classShotsOn}">${shotsOn}</td>
+                                    <td>${shotsTot}</td>
+                                    <td>${fouls}</td>
+                                    <td>${cards === "" ? "-" : cards}</td>
+                                    <td class="${classSaves}">${stats.games.position === "G" ? saves : "-"}</td>
+                                </tr>
+                            `;
+                        }
+                    });
+                });
+            } else {
+                playersTable.innerHTML = "<tr><td colspan='8' style='text-align:center;'>Dados de jogadores indisponíveis no momento.</td></tr>";
+            }
+
+        } catch (error) {
+            console.error(error);
+            loading.innerHTML = `<span class="stat-red">Erro crítico ao carregar estatísticas.</span>`;
+        }
+    }
+</script>
+</body>
+</html>
