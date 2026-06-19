@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Tipster Radar - Dashboard Pro</title>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-bar">
+    <h1>🎯 Tipster Radar</h1>
+    <input type="date" id="dateFilter" class="date-picker">
+</header>
+
+<div class="app-layout">
+    <aside class="sidebar" id="tela-sidebar">
+        <h2>Ligas do Dia</h2>
+        <div id="league-list"></div>
+    </aside>
+
+    <main class="content">
+        <div id="tela-radar">
+            <div class="tabs">
+                <button class="tab-btn active" id="btn-tab-all" onclick="setFilter('all')">Todos os Jogos</button>
+                <button class="tab-btn" id="btn-tab-live" onclick="setFilter('live')">🔴 Ao Vivo</button>
+                <button class="tab-btn" id="btn-tab-fav" onclick="setFilter('fav')">⭐ Favoritos</button>
+            </div>
+            <div id="loading-radar" class="loading" style="display: none;">Buscando jogos...</div>
+            <div class="games-grid" id="games-list"></div>
+        </div>
+
+        <div id="tela-mercados">
+            <div style="display: flex; flex-wrap: wrap;">
+                <button class="btn-voltar" onclick="voltarParaRadar()">⬅ Voltar ao Radar</button>
+                <button class="btn-exportar" onclick="exportarWhatsApp()">📲 Copiar Análise</button>
+            </div>
+            
+            <h1 id="match-title" style="margin-bottom: 20px; display: flex; align-items: center;">
+                Carregando Jogo...
+            </h1>
+            <div id="loading-mercados" class="loading" style="display: none;">Mapeando dados da partida...</div>
+            
+            <div id="dados-mercado" style="display: none;"></div>
+        </div>
+    </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
