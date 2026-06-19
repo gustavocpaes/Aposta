@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
     <title>Tipster Radar - Dashboard Pro</title>
     <style>
         :root {
@@ -133,8 +134,7 @@
             </h1>
             <div id="loading-mercados" class="loading" style="display: none;">Mapeando dados da partida...</div>
             
-            <div id="dados-mercado" style="display: none;">
-                </div>
+            <div id="dados-mercado" style="display: none;"></div>
         </div>
     </main>
 </div>
@@ -143,6 +143,13 @@
     const API_KEY = "b6e7deed3ecf1d330f35324625c88b46"; 
     const BASE_URL = "https://v3.football.api-sports.io";
     const requestOptions = { method: 'GET', headers: { "x-apisports-key": API_KEY, "x-rapidapi-key": API_KEY }, redirect: 'follow' };
+
+    // FUNÇÃO MÁGICA: PROXY DE IMAGENS
+    // Pega o link original da API e passa pelo weserv.nl para driblar o bloqueio
+    const proxyImg = (url) => {
+        if(!url) return "";
+        return `https://wsrv.nl/?url=${url.replace(/^https?:\/\//, '')}`;
+    };
 
     const TOP_LEAGUES = [15, 1, 2, 3, 39, 140, 135, 78, 61, 71, 13, 9, 4];
     let todosOsJogos = [];
@@ -207,7 +214,7 @@
             return (aIsTop && !bIsTop) ? -1 : (!aIsTop && bIsTop) ? 1 : a.name.localeCompare(b.name);
         });
 
-        ligasArray.forEach(liga => { leagueList.innerHTML += `<div class="league-item" onclick="filtrarPorLiga(${liga.id}, this)"><img src="${liga.logo}"> ${liga.name}</div>`; });
+        ligasArray.forEach(liga => { leagueList.innerHTML += `<div class="league-item" onclick="filtrarPorLiga(${liga.id}, this)"><img src="${proxyImg(liga.logo)}"> ${liga.name}</div>`; });
     }
 
     function filtrarPorLiga(idLiga, elemento = null) {
@@ -247,16 +254,15 @@
             const statusInfo = isLive ? `<span class="stat-green">AO VIVO - ${jogo.fixture.status.elapsed ?? '?'}分</span>` : (jogo.fixture.status.short === "NS" ? "A Iniciar" : "Encerrado");
             const starClass = jogosFavoritos.includes(jogo.fixture.id) ? "fav-star active" : "fav-star";
 
-            // AGORA COM OS ESCUDOS DAS EQUIPAS
             grid.innerHTML += `
                 <div class="game-card">
                     <span class="${starClass}" onclick="toggleFav(${jogo.fixture.id})">★</span>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;"><img src="${jogo.league.logo}" width="15" style="border-radius: 50%; vertical-align: middle;"> ${jogo.league.name}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;"><img src="${proxyImg(jogo.league.logo)}" width="15" style="border-radius: 50%; vertical-align: middle;"> ${jogo.league.name}</div>
                     <div class="game-status">${statusInfo}</div>
                     
                     <div class="teams">
                         <div class="team-info">
-                            <img src="${jogo.teams.home.logo}" width="24" style="border-radius: 50%;">
+                            <img src="${proxyImg(jogo.teams.home.logo)}" width="24" style="border-radius: 50%;">
                             <span>${jogo.teams.home.name}</span>
                         </div>
                         
@@ -264,7 +270,7 @@
                         
                         <div class="team-info away">
                             <span>${jogo.teams.away.name}</span>
-                            <img src="${jogo.teams.away.logo}" width="24" style="border-radius: 50%;">
+                            <img src="${proxyImg(jogo.teams.away.logo)}" width="24" style="border-radius: 50%;">
                         </div>
                     </div>
 
@@ -298,7 +304,7 @@
     }
 
     // ==========================================
-    // MODO 1: ANÁLISE PRÉ-JOGO (ROBÔ TIPSTER ATIVADO)
+    // MODO 1: ANÁLISE PRÉ-JOGO
     // ==========================================
     async function buscarPreJogo(fixtureId, homeName, awayName) {
         const loading = document.getElementById('loading-mercados');
@@ -327,7 +333,6 @@
             const percDraw = pred.predictions.percent.draw;
             const percAway = pred.predictions.percent.away;
             
-            // DADOS DO ROBÔ TIPSTER
             const tipAdvice = pred.predictions.advice || "Sem indicação clara.";
             const tipGoals = pred.predictions.under_over || "N/A";
             const tipBtts = pred.predictions.btts ? "SIM" : "NÃO";
@@ -336,9 +341,9 @@
             if(pred.h2h && pred.h2h.length > 0) {
                 h2hHtml = pred.h2h.slice(0, 5).map(jogo => {
                     return `<tr>
-                                <td><img src="${jogo.teams.home.logo}" width="16" style="vertical-align:middle; border-radius:50%;"> ${jogo.teams.home.name}</td>
+                                <td><img src="${proxyImg(jogo.teams.home.logo)}" width="16" style="vertical-align:middle; border-radius:50%;"> ${jogo.teams.home.name}</td>
                                 <td style="text-align:center; font-weight:bold;">${jogo.goals.home ?? 0} - ${jogo.goals.away ?? 0}</td>
-                                <td><img src="${jogo.teams.away.logo}" width="16" style="vertical-align:middle; border-radius:50%;"> ${jogo.teams.away.name}</td>
+                                <td><img src="${proxyImg(jogo.teams.away.logo)}" width="16" style="vertical-align:middle; border-radius:50%;"> ${jogo.teams.away.name}</td>
                             </tr>`;
                 }).join('');
             } else { h2hHtml = `<tr><td colspan="3" style="text-align:center;">Sem confrontos diretos recentes.</td></tr>`; }
@@ -354,13 +359,13 @@
                 <div class="market-blocks">
                     <div class="market-card">
                         <h3 style="display:flex; align-items:center; justify-content:center; gap:8px;">
-                            <img src="${pred.teams.home.logo}" width="20" style="border-radius:50%;"> Últimos 5: ${homeName}
+                            <img src="${proxyImg(pred.teams.home.logo)}" width="20" style="border-radius:50%;"> Últimos 5: ${homeName}
                         </h3>
                         <div>${formatForm(homeForm)}</div>
                     </div>
                     <div class="market-card">
                         <h3 style="display:flex; align-items:center; justify-content:center; gap:8px;">
-                            <img src="${pred.teams.away.logo}" width="20" style="border-radius:50%;"> Últimos 5: ${awayName}
+                            <img src="${proxyImg(pred.teams.away.logo)}" width="20" style="border-radius:50%;"> Últimos 5: ${awayName}
                         </h3>
                         <div>${formatForm(awayForm)}</div>
                     </div>
@@ -394,7 +399,7 @@
     }
 
     // ==========================================
-    // MODO 2: ESTATÍSTICAS AO VIVO COM LOGOS
+    // MODO 2: ESTATÍSTICAS AO VIVO
     // ==========================================
     async function buscarAoVivo(fixtureId) {
         const loading = document.getElementById('loading-mercados');
@@ -430,7 +435,7 @@
                     teamStatsContainer.innerHTML += `
                         <div class="market-card">
                             <h3 style="display:flex; align-items:center; justify-content:center; gap:10px;">
-                                <img src="${time.team.logo}" width="28" style="border-radius: 5px;">
+                                <img src="${proxyImg(time.team.logo)}" width="28" style="border-radius: 5px;">
                                 ${time.team.name}
                             </h3>
                             <p>Escanteios: <span class="stat-green" style="font-weight:bold">${getStat("Corner Kicks")}</span></p>
@@ -448,7 +453,7 @@
                             const cards = (stats.cards.yellow > 0 ? "🟨" : "") + (stats.cards.red > 0 ? "🟥" : "");
                             playersTable.innerHTML += `
                                 <tr>
-                                    <td style="text-align:center;"><img src="${time.team.logo}" width="22" style="border-radius: 50%;" title="${time.team.name}"></td>
+                                    <td style="text-align:center;"><img src="${proxyImg(time.team.logo)}" width="22" style="border-radius: 50%;" title="${time.team.name}"></td>
                                     <td><strong>${p.player.name}</strong></td>
                                     <td style="color:var(--text-muted);">${stats.games.position}</td>
                                     <td class="${shotsOn > 0 ? 'highlight-chute' : 'stat-red'}">${shotsOn}</td>
